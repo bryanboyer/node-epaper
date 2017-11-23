@@ -33,7 +33,7 @@ function Gpio() {
 
 Gpio.prototype.init = function init(cb) {
   console.log(gpioInitPath);
-  child_process.execFile("sh " + gpioInitPath, function(error, stdout, stderr) {
+  child_process.exec("sh " + gpioInitPath, function(error, stdout, stderr) {
     console.log(stdout);
     console.log(stderr);
     cb(error);
@@ -50,7 +50,7 @@ Gpio.prototype.get = function get(pin, cb) {
 Gpio.prototype.set = function set(pin, value, cb) {
   // gpio -g write 13 1
   // turn pin 13 to value 1. Must use BCM pin number.
-  var command = util.format('gpio -g write %s %s', pin.name, value);
+  var command = util.format('gpio -g write %s %s', pin.bcm, value);
   exec(command, function (error, stdout, stderr) {
     if (stderr) {
       console.log('stderr: ' + stderr);

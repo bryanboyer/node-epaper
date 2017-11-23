@@ -4,10 +4,10 @@ var path = require('path');
 var fs = require('fs');
 var epaper = require('../index.js');
 
-var filePath = path.join(path.dirname(fs.realpathSync(__filename)), 'samples/temp-rotated_1bit.epd');
+var filePath = path.join(path.dirname(fs.realpathSync(__filename)), 'images/frame.epd');
 
 epaper.init({
-  spiDev: '/dev/spidev1.0',
+  spiDev: '/dev/spidev0.0',
   clockSpeed: 1e5
 }, function(err) {
   if (err) {
