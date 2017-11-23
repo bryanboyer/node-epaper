@@ -23,8 +23,8 @@ function getPinPath(pin) {
 }
 
 var pins = {
-  PIN_BUSY: {beaglebone: 'P8.10', bcm: x, physical: x, id: 18},
-  PIN_EN: {beaglebone:'P9.12', bcm: x, physical: x, id: 23}
+  PIN_BUSY: {beaglebone: 'P8.10', bcm: 18, physical: 12},
+  PIN_EN: {beaglebone:'P9.12', bcm: 23, physical: 16}
 };
 
 function Gpio() {
