@@ -168,7 +168,7 @@ Epaper.prototype.init = function init(options, cb) {
 
 //pin=1 -> not busy
 Epaper.prototype.isBusy = function isBusy(cb) {
-  return gpio.get(gpio.pins.P8_10, function(err, val) {
+  return gpio.get(gpio.pins.PIN_BUSY, function(err, val) {
     if (err) {
       return cb(err);
     }
@@ -177,11 +177,11 @@ Epaper.prototype.isBusy = function isBusy(cb) {
 };
 
 Epaper.prototype.enable = function enable(cb) {
-  return gpio.set(gpio.pins.P9_12, 0, cb);
+  return gpio.set(gpio.pins.PIN_EN, 0, cb);
 };
 
 Epaper.prototype.disable = function disable(cb) {
-  return gpio.set(gpio.pins.P9_12, 1, cb);
+  return gpio.set(gpio.pins.PIN_EN, 1, cb);
 };
 
 var MAX_CHUNK_SIZE = 0xFA;
