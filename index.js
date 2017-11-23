@@ -3,6 +3,7 @@
 var SPI = require('pi-spi');
 var async = require('async');
 var u = require('lodash');
+var util = require('util');
 var fs = require('fs');
 var gpio = require('./gpio.js');
 var imageUtils = require('./image-utils.js');
@@ -65,7 +66,7 @@ Epaper.prototype._waitUntilNotBusy = function _waitUntilNotBusy(timeout, callbac
       return callback(null);
     }
 
-    setTimeout(self._waitUntilNotBusy.bind(self, timeout-200, callback), 200);
+    setTimeout(self._waitUntilNotBusy.bind(self, timeout-100, callback), 100);
   });
 }
 
@@ -143,8 +144,8 @@ Epaper.prototype.getDeviceInfo = function getDeviceInfo(cb) {
 };
 
 Epaper.prototype.init = function init(options, cb) {
-  var spiDev = options.spiDev || '/dev/spidev1.0';
-  var clockSpeed = options.clockSpeed || 1e5; //100 khz
+  var spiDev = options.spiDev || '/dev/spidev0.0';
+  var clockSpeed = options.clockSpeed || 3e5; //1e5 = 100 khz... I have no idea what notation this is! oops.
 
   this.spi = SPI.initialize(spiDev);
   this.spi.dataMode(SPI.mode.CPHA | SPI.mode.CPOL);
@@ -184,10 +185,12 @@ Epaper.prototype.disable = function disable(cb) {
   return gpio.set(gpio.pins.PIN_EN, 1, cb);
 };
 
-var MAX_CHUNK_SIZE = 0xFA;
+var MAX_CHUNK_SIZE = 0xFA; // = 250
 Epaper.prototype._sendBuf = function _sendBuf(buf, maxChunkSize, cb) {
   var self = this;
   var chunks = u.chunk(buf, maxChunkSize);
+  var chunksWritten = 0;
+  var bufferTimer = process.hrtime();
 
   async.eachSeries(chunks, function(chunk, callback) {
     var INS = 0x20;
@@ -205,7 +208,8 @@ Epaper.prototype._sendBuf = function _sendBuf(buf, maxChunkSize, cb) {
           return callback(err);
         }
         self.spi.read(2, function(err, rxbuf) {
-          console.log("After Chunk", rxbuf);
+          console.log("After Chunk " + chunksWritten, rxbuf);
+          chunksWritten++;
           return callback(err);
         });
 
@@ -218,7 +222,8 @@ Epaper.prototype._sendBuf = function _sendBuf(buf, maxChunkSize, cb) {
       console.log('Error Result', err);
       return cb(err);
     } else {
-      console.log('All fine');
+      var msg = util.format('Buffer transfered in %d seconds',process.hrtime(bufferTimer)[0])
+      console.log(msg);
       self.spi.read(2, function(err, rxbuf) {
         console.log("RESULT", rxbuf);
         return cb();
@@ -234,7 +239,7 @@ Epaper.prototype.sendEpdFile = function sendEpdFile(filePath, cb) {
   imageStream.on('data', function(chunk) {
     console.log('got %d bytes of data', chunk.length);
 
-    self._sendBuf(chunk, 120, cb);
+    self._sendBuf(chunk, 250, cb);
   });
 
   imageStream.on('end', function() {
