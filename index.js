@@ -17,13 +17,34 @@ var imageUtils = require('./image-utils.js');
 // Chip select polarity – active low
 
 
-var ResultCodes = {
-    EP_SW_NORMAL_PROCESSING: 0x9000, //command successfully executed
-    EP_SW_WRONG_LENGTH: 0x6700, //incorrect length (invalid Lc value or command too short or too long)
-    EP_SW_INVALID_LE: 0x6C00, //invalid Le field
-    EP_SW_WRONG_PARAMETERS_P1P2: 0x6A00, //invalid P1 or P2 field
-    EP_SW_INSTRUCTION_NOT_SUPPORTED: 0x6D00, //command not supported
-};
+var resultCodes = [
+  {
+    hex: "0x9000",
+    msg: "EP_SW_NORMAL_PROCESSING",
+    plainEnglish: " //command successfully executed",
+    state: "ok"
+  },
+  {
+    hex: "0x6700",
+    msg: "EP_SW_WRONG_LENGTH",
+    state: "error"
+  },
+  {
+    hex: "0x6C00",
+    msg: "EP_SW_INVALID_LE",
+    state: "error"
+  },
+  {
+    hex: "0x6A00",
+    msg: "EP_SW_WRONG_PARAMETERS_P1P2",
+    state: "error"
+  },
+  {
+    hex: "0x6D00",
+    msg: "EP_SW_INSTRUCTION_NOT_SUPPORTED",
+    state: "error"
+  }
+];
 
 
 function Epaper () {
@@ -46,7 +67,7 @@ Epaper.prototype._runCommand = function _runCommand(command, readBytes, cb) {
 
     self.spi.read(readBytes, function(err, data) {
       console.log("DUMMY READ", data);
-      console.log("DUMMY READ", data.toString());
+      console.log("DUMMY READ", data);
 
       return cb(err, data);
     });
@@ -66,7 +87,7 @@ Epaper.prototype._waitUntilNotBusy = function _waitUntilNotBusy(timeout, callbac
       return callback(null);
     }
 
-    setTimeout(self._waitUntilNotBusy.bind(self, timeout-100, callback), 100);
+    setTimeout(self._waitUntilNotBusy.bind(self, timeout-50, callback), 50);
   });
 }
 
@@ -114,6 +135,14 @@ Epaper.prototype.executeCommand = function executeCommand(command, readBytes, cb
   });
 }
 
+/* new BRB function */
+function parseResultCode(rxbuf) {
+  var code = "0x" + rxbuf.toString('hex');
+
+  var picked = u.filter(resultCodes, x => x.hex === code);
+  return picked[0].msg;
+}
+
 function parseInfo(infoBuf) {
   var info = {};
 
@@ -145,7 +174,7 @@ Epaper.prototype.getDeviceInfo = function getDeviceInfo(cb) {
 
 Epaper.prototype.init = function init(options, cb) {
   var spiDev = options.spiDev || '/dev/spidev0.0';
-  var clockSpeed = options.clockSpeed || 3e5; //1e5 = 100 khz... I have no idea what notation this is! oops.
+  var clockSpeed = options.clockSpeed || 1e5; //1e5 = 100 khz... I have no idea what notation this is! oops.
 
   this.spi = SPI.initialize(spiDev);
   this.spi.dataMode(SPI.mode.CPHA | SPI.mode.CPOL);
@@ -208,7 +237,7 @@ Epaper.prototype._sendBuf = function _sendBuf(buf, maxChunkSize, cb) {
           return callback(err);
         }
         self.spi.read(2, function(err, rxbuf) {
-          console.log("After Chunk " + chunksWritten, rxbuf);
+          console.log("After Chunk " + chunksWritten, parseResultCode(rxbuf));
           chunksWritten++;
           return callback(err);
         });
@@ -247,7 +276,7 @@ Epaper.prototype.sendEpdFile = function sendEpdFile(filePath, cb) {
   });
 };
 
-Epaper.prototype.uploadImage = function uploadImage(filePath, cb) {
+Epaper.prototype.uploadEpd = function uploadEpd(filePath, cb) {
   var self = this;
   function displayUpdate(cb) {
     var command = new Buffer([0x24, 0x01, 0x00]);
@@ -272,6 +301,18 @@ Epaper.prototype.uploadImage = function uploadImage(filePath, cb) {
   this.executeCommand(upload, 0, cb);
 }
 
+Epaper.prototype.uploadPng = function uploadPng(pngFile, cb) {
+  var self = this;
+
+    imageUtils.image2Epd(pngFile, 'temp.epd', function(err) {
+      if (err) {
+        return cb(err);
+      }
+
+      self.uploadEpd('temp.epd', cb);
+    });
+}
+
 Epaper.prototype.uploadFromUrl = function uploadFromUrl(url, cb) {
   var self = this;
   imageUtils.capture(url, 'temp.png', function(err) {
@@ -284,7 +325,7 @@ Epaper.prototype.uploadFromUrl = function uploadFromUrl(url, cb) {
         return cb(err);
       }
 
-      self.uploadImage('temp.epd', cb);
+      self.uploadEpd('temp.epd', cb);
     });
   });
 }
