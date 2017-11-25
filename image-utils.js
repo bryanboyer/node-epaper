@@ -27,7 +27,9 @@ function image2Epd(imagePath, out, cb) {
   var sample1BitPng = new Jimp(imagePath, function (err, image) {
     console.log('Before Data width', image.bitmap.width);
     console.log('Before Data height', image.bitmap.height);
-    this.rotate(90)
+
+    // EPD expects images in portrait orientation
+    if (image.bitmap.width > image.bitmap.height) this.rotate(90);
 
     console.log('After flip Data width', image.bitmap.width);
     console.log('Data height', image.bitmap.height);
