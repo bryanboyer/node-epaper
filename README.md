@@ -2,8 +2,11 @@
 A node.js library for epaper displays using spi.
 Raspberry Pi port of [node-epaper](https://github.com/doganyazar/node-epaper)
 
+## Installation
+Connect the device. Install the node modules using `npm install` or similar. Make sure you have `gpio` installed. It's part of [wiringPi](http://wiringpi.com/).
+
 ## Usage
-Connect the device. Install the node modules using `npm install` or similar. Then look in `/examples/` for a couple files. `loadPng.js` and `loadEpd.js` can both be used with a file specified in the commandline, such as `loadEpd.js images/text.epd`
+Then look in `/examples/` for a couple files. `loadPng.js` and `loadEpd.js` can both be used with a file specified in the commandline, such as `loadEpd.js images/text.epd`
 
 ## Things to keep in mind
 - Keep the SPI cables short
