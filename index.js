@@ -211,11 +211,7 @@ Epaper.prototype.init = function init(options, cb) {
 
 //pin=1 -> not busy
 Epaper.prototype.isBusy = function isBusy(cb) {
-<<<<<<< HEAD
-  return gpio.get(this.busyPin, function(err, val) {
-=======
   return gpio.get(gpio.pins.PIN_BUSY, function(err, val) {
->>>>>>> testb
     if (err) {
       return cb(err);
     }
@@ -224,15 +220,6 @@ Epaper.prototype.isBusy = function isBusy(cb) {
 };
 
 Epaper.prototype.enable = function enable(cb) {
-<<<<<<< HEAD
-  return gpio.set(this.enablePin, 0, cb);
-};
-
-Epaper.prototype.disable = function disable(cb) {
-  return gpio.set(this.enablePin, 1, cb);
-};
-
-=======
   return gpio.set(gpio.pins.PIN_EN, 0, cb);
 };
 
@@ -241,7 +228,6 @@ Epaper.prototype.disable = function disable(cb) {
 };
 
 var MAX_CHUNK_SIZE = 0xFA; // = 250
->>>>>>> testb
 Epaper.prototype._sendBuf = function _sendBuf(buf, maxChunkSize, cb) {
   var self = this;
   var chunks = u.chunk(buf, maxChunkSize);
@@ -315,30 +301,6 @@ Epaper.prototype._sendBuf = function _sendBuf(buf, maxChunkSize, cb) {
 Epaper.prototype.sendEpd = function sendEpd(epd, cb) {
   var self = this;
 
-<<<<<<< HEAD
-  //epd can be a filePath or buffer
-  if (typeof epd === 'string') {
-    var filePath = epd;
-
-    var imageStream = fs.createReadStream(filePath);
-
-    //TODO not a very smart way. It may arrive in several chunks and then it would fail.
-    imageStream.on('data', function(chunk) {
-      console.log('got %d bytes of data', chunk.length);
-
-      self._sendBuf(chunk, 120, cb);
-    });
-
-    imageStream.on('end', function() {
-      console.log('Stream End');
-    });
-  } else {
-    self._sendBuf(epd, 120, cb);
-  }
-};
-
-Epaper.prototype.uploadImage = function uploadImage(epd, cb) {
-=======
   imageStream.on('data', function(chunk) {
     //console.log('got %d bytes of data', chunk.length);
     self._sendBuf(chunk, 250, cb);
@@ -350,7 +312,6 @@ Epaper.prototype.uploadImage = function uploadImage(epd, cb) {
 };
 
 Epaper.prototype.uploadEpd = function uploadEpd(filePath, cb) {
->>>>>>> testb
   var self = this;
   function displayUpdate(cb) {
     var command = new Buffer([0x24, 0x01, 0x00]);
@@ -399,11 +360,7 @@ Epaper.prototype.uploadFromUrl = function uploadFromUrl(url, cb) {
         return cb(err);
       }
 
-<<<<<<< HEAD
-      self.uploadImage(epdBuf, cb);
-=======
       self.uploadEpd('temp.epd', cb);
->>>>>>> testb
     });
   });
 }
