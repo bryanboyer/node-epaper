@@ -10,4 +10,7 @@ epaper.init({
     throw new Error(err);
   }
 
+  epaper.getDeviceInfo(function (err, data) {
+    console.log(err, data)
+  })
 });
