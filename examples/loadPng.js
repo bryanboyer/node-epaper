@@ -22,7 +22,7 @@ epaper.init({
   }
 
   if (fs.existsSync(filePath)) {
-    epaper.uploadPng(filePath, function(err, data) {
+    epaper.uploadPng(filePath, "temp.png", function(err, data) {
       console.log(err, data);
     });
   } else {

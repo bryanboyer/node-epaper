@@ -18,8 +18,10 @@
   "homepage": "https://github.com/doganyazar/node-epaper#readme",
   "dependencies": {
     "async": "^1.4.2",
+    "clamp": "^1.0.1",
     "jimp": "^0.2.5",
     "lodash": "^3.10.1",
+    "node-status": "^1.0.0",
     "pi-spi": "^1.0.0"
   },
   "devDependencies": {

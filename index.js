@@ -337,28 +337,28 @@ Epaper.prototype.uploadEpd = function uploadEpd(filePath, cb) {
 Epaper.prototype.uploadPng = function uploadPng(pngFile, cb) {
   var self = this;
 
-    imageUtils.image2Epd(pngFile, 'temp.epd', function(err) {
+    imageUtils.image2Epd(pngFile, 'epd/frame.epd', function(err) {
       if (err) {
         return cb(err);
       }
 
-      self.uploadEpd('temp.epd', cb);
+      self.uploadEpd('epd/frame.epd', cb);
     });
 }
 
 Epaper.prototype.uploadFromUrl = function uploadFromUrl(url, cb) {
   var self = this;
-  imageUtils.capture(url, 'temp.png', function(err) {
+  imageUtils.capture(url, 'img/temp.png', function(err) {
     if (err) {
       return cb(err);
     }
 
-    imageUtils.image2Epd('temp.png', 'temp.epd', function(err) {
+    imageUtils.image2Epd('img/temp.png', 'epd/frame.epd', function(err) {
       if (err) {
         return cb(err);
       }
 
-      self.uploadEpd('temp.epd', cb);
+      self.uploadEpd('epd/frame.epd', cb);
     });
   });
 }

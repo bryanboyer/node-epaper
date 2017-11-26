@@ -4,6 +4,8 @@ var Jimp = require("jimp");
 var child_process = require('child_process');
 var util = require('util');
 var fs = require('fs');
+var clamp = require("clamp");
+var path = require('path');
 var exec = child_process.exec;
 
 //Assumes wkhtmltoimage and xvfb-run is installed
@@ -29,14 +31,15 @@ function image2Epd(imagePath, out, cb) {
     // EPD expects images in portrait orientation
     if (image.bitmap.width > image.bitmap.height) this.rotate(90);
 
-    this.write('temp-rotated.png')
+    //var tempRotatedPath = path.join(path.dirname(fs.realpathSync(out)), '../img/frame-rotated.png');
+    //this.write(tempRotatedPath);
 
     console.log('After flip Data width', image.bitmap.width);
     console.log('Data height', image.bitmap.height);
 
-
     this.resize(480, 800) // resize
-    .greyscale();
+    .greyscale()
+    .ditherFloyd();
 
     console.log('Data len', image.bitmap.data.length);
     console.log('Data width', image.bitmap.width);
@@ -131,6 +134,148 @@ function convertTo1bit_PixelFormatType4(picData) {
 
   return newPicData;
 };
+
+/* Dithering algos */
+
+Jimp.prototype.ditherSimple = function (cb) {
+
+  var rawImage = this.bitmap.data;
+
+  for (var i = 0, bit = 0; i < rawImage.length; i += 4){
+    var ideal = (rawImage[i] + rawImage[i+1] + rawImage[i+2]) / 3;
+    var clamped = ideal > 128 ? 255 : 0;
+    var dither_error = ideal - clamped;
+
+    // alter R,G,B
+    rawImage[i] = ideal > 130 ? 255 : 0;
+    rawImage[i+1] = ideal > 130 ? 255 : 0;
+    rawImage[i+2] = ideal > 130 ? 255 : 0;
+
+    // now cast some error onto the next pixel
+    rawImage[i+4] += dither_error*1/3;
+    rawImage[i+5] += dither_error*1/3;
+    rawImage[i+6] += dither_error*1/3;
+  }
+
+  console.log("Dithering (simple error offset)");
+
+  if (isNodePattern(cb)) return cb.call(this, null, this);
+  else return this;
+}
+
+Jimp.prototype.ditherFloyd = function (cb) {
+  var rawImage = this.bitmap.data;
+
+  // rawImage.averageColor = averageColor(this);
+  // console.log("Average color",rawImage.averageColor.toFixed(2));
+
+  var count = 0;
+  var y = 0;
+
+  for (var i = 0, bit = 0; i < rawImage.length; i += 4){
+    var x = (i - (480*y*4))/4;
+
+    var ideal = (rawImage[i] + rawImage[i+1] + rawImage[i+2]) / 3;
+    var clamped = ideal > 130 ? 255 : 0;
+    var dither_error = ideal - clamped;
+
+    // alter R,G,B
+    var pixelColor = ideal > 130 ? Jimp.rgbaToInt(255, 255, 255, 255) : Jimp.rgbaToInt(0, 0, 0, 255);
+    this.setPixelColor(pixelColor, x, y);
+
+    // now cast some error onto the next pixel
+    this.setPixelColor(adjustPixel(this,x+1,y,dither_error*7/16), x+1, y);
+    this.setPixelColor(adjustPixel(this,x-1,y+1,dither_error*3/16), x-1, y+1);
+    this.setPixelColor(adjustPixel(this,x,y+1,dither_error*5/16), x, y+1);
+    this.setPixelColor(adjustPixel(this,x+1,y+1,dither_error*1/16), x+1, y+1);
+
+    // now iterate the coordinate tracker
+    count++;
+    if (count>=480) {
+      y++;
+      count=0;
+    }
+
+  }
+  console.log("Dithering (Floyd-Steinberg)");
+
+  if (isNodePattern(cb)) return cb.call(this, null, this);
+  else return this;
+
+}
+
+Jimp.prototype.ditherAtkinson = function (cb) {
+  var rawImage = this.bitmap.data;
+
+  // rawImage.averageColor = averageColor(this);
+  // console.log("Average color",rawImage.averageColor.toFixed(2));
+
+  var count = 0;
+  var y = 0;
+
+  for (var i = 0, bit = 0; i < rawImage.length; i += 4){
+    var x = (i - (480*y*4))/4;
+
+    var ideal = (rawImage[i] + rawImage[i+1] + rawImage[i+2]) / 3;
+    var clamped = ideal > 130 ? 255 : 0;
+    var dither_error = ideal - clamped;
+
+    // alter R,G,B
+    var pixelColor = ideal > 130 ? Jimp.rgbaToInt(255, 255, 255, 255) : Jimp.rgbaToInt(0, 0, 0, 255);
+    this.setPixelColor(pixelColor, x, y);
+
+    // now cast some error onto the next pixel
+    this.setPixelColor(adjustPixel(this,x+1,y,dither_error*1/8), x+1, y);
+    this.setPixelColor(adjustPixel(this,x+2,y,dither_error*1/8), x+2, y);
+    this.setPixelColor(adjustPixel(this,x-1,y+1,dither_error*1/8), x-1, y+1);
+    this.setPixelColor(adjustPixel(this,x,y+1,dither_error*1/8), x, y+1);
+    this.setPixelColor(adjustPixel(this,x+1,y+1,dither_error*1/8), x+1, y+1);
+    this.setPixelColor(adjustPixel(this,x,y+2,dither_error*1/8), x, y+2);
+
+    // now iterate the coordinate tracker
+    count++;
+    if (count>=480) {
+      y++;
+      count=0;
+    }
+
+  }
+  console.log("Dithering (Atkinson)");
+
+  if (isNodePattern(cb)) return cb.call(this, null, this);
+  else return this;
+
+}
+
+/* end Dithering algos */
+
+/* Dithering utils */
+
+function adjustPixel(img, x, y, error){
+  var color = Jimp.intToRGBA(img.getPixelColor(x,y));
+  color.r = clamp(color.r+error, 0, 255);
+  color.g = clamp(color.g+error, 0, 255);
+  color.b = clamp(color.b+error, 0, 255);
+  return Jimp.rgbaToInt(color.r,color.g,color.b,color.a);
+}
+
+function averageColor(img){
+  var sum = 0;
+  for (var i = 0; i < img.bitmap.data.length; i += 4){
+    // base 10
+    sum += parseInt(img.bitmap.data[i],10);
+  }
+  return sum / (img.bitmap.data.length/4);
+}
+
+function isNodePattern(cb) {
+    if ("undefined" == typeof cb) return false;
+    if ("function" != typeof cb)
+        throw new Error("Callback must be a function");
+    return true;
+}
+
+/* end Dithering utils */
 
 module.exports = {
   capture: capture,
