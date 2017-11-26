@@ -8,6 +8,7 @@ var fs = require('fs');
 var gpio = require('./gpio.js');
 var imageUtils = require('./image-utils.js');
 var status = require('node-status');
+var path = require('path');
 var console = status.console();
 
 // SPI Settings
@@ -337,12 +338,12 @@ Epaper.prototype.uploadEpd = function uploadEpd(filePath, cb) {
 Epaper.prototype.uploadPng = function uploadPng(pngFile, cb) {
   var self = this;
 
-    imageUtils.image2Epd(pngFile, 'epd/frame.epd', function(err) {
+    imageUtils.image2Epd(pngFile, path.join(path.dirname(fs.realpathSync(pngFile)), '../epd/frame.epd'), function(err) {
       if (err) {
         return cb(err);
       }
 
-      self.uploadEpd('epd/frame.epd', cb);
+      self.uploadEpd(path.join(path.dirname(fs.realpathSync(pngFile)), '../epd/frame.epd'), cb);
     });
 }
 
